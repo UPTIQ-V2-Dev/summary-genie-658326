@@ -135,13 +135,45 @@ A React 19 + Vite + Shadcn + Tailwind v4 application for generating summaries fr
 - `ApiResponse` - Standard API response
 - `ErrorState` - Error handling types
 
+### 4. Login Page (`/login`)
+
+#### Components Needed:
+
+- `LoginPage` - Main login page component
+- `LoginForm` - Login form with validation
+- `AuthCard` - Card container for auth forms
+
+#### Types:
+
+- `LoginRequest` - Login credentials type (already exists)
+- `AuthResponse` - Authentication response type (already exists)
+
+#### Utils:
+
+- `authApi.ts` - Authentication API calls (already exists)
+- `validation.ts` - Form validation utilities
+
+#### API Endpoints:
+
+- `POST /auth/login` - User authentication
+- `POST /auth/refresh-tokens` - Token refresh
+
+#### Features:
+
+- Email/password login form
+- Form validation with error handling
+- Loading states during authentication
+- Redirect to main page after successful login
+- Remember me functionality
+- Forgot password link placeholder
+
 ## Routing Structure
 
 ```
 / - Main summary generator
+/login - User login
 /history - Summary history
 /settings - User settings
-/auth/login - Login (if auth required)
 /auth/register - Registration (if auth required)
 ```
 

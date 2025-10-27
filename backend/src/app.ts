@@ -12,6 +12,7 @@ import express from 'express';
 import helmet from 'helmet';
 import httpStatus from 'http-status';
 import passport from 'passport';
+import path from 'path';
 
 const app = express();
 
@@ -20,8 +21,19 @@ if (config.env !== 'test') {
     app.use(morgan.errorHandler);
 }
 
-// set security HTTP headers
-app.use(helmet());
+// set security HTTP headers (with CSP adjustments for inline styles and scripts)
+app.use(
+    helmet({
+        contentSecurityPolicy: {
+            directives: {
+                defaultSrc: ["'self'"],
+                styleSrc: ["'self'", "'unsafe-inline'"],
+                scriptSrc: ["'self'", "'unsafe-inline'"],
+                imgSrc: ["'self'", 'data:', 'https:']
+            }
+        }
+    })
+);
 
 // parse json request body
 app.use(express.json());
@@ -39,6 +51,9 @@ app.use(compression());
 app.use(cors());
 // app.options('*', cors());
 
+// serve static files from public directory
+app.use(express.static(path.join(process.cwd(), 'public')));
+
 // jwt authentication
 app.use(passport.initialize());
 passport.use('jwt', jwtStrategy);
@@ -48,8 +63,14 @@ if (config.env === 'production') {
     app.use('/api/v1/auth', authLimiter);
 }
 
+// redirect root to login page
 app.get('/', (req, res) => {
-    res.send('Hello World');
+    res.redirect('/login.html');
+});
+
+// serve login page specifically
+app.get('/login', (req, res) => {
+    res.sendFile(path.join(process.cwd(), 'public', 'login.html'));
 });
 
 app.get('/api/v1/health', (req, res) => {
