@@ -1,33 +1,30 @@
 import { api } from '@/lib/api';
 import type { SummaryResponse, SummaryHistoryItem, SummaryFilters, GenerateSummaryParams } from '@/types/summary';
 import type { PaginatedResponse } from '@/types/api';
-import { mockSummaryResponse, mockSummaryHistory } from '@/data/mockData';
+import { mockSummaryHistory } from '@/data/mockData';
+import { emitter } from '@/agentSdk';
 
 export const generateSummary = async (params: GenerateSummaryParams): Promise<SummaryResponse> => {
-    if (import.meta.env.VITE_USE_MOCK_DATA === 'true') {
-        // Simulate API delay
-        await new Promise(resolve => setTimeout(resolve, 2000));
-
-        return {
-            ...mockSummaryResponse,
-            id: Date.now().toString(),
-            originalText: params.text,
-            summary: `This is a generated summary of your text: "${params.text.substring(0, 100)}${params.text.length > 100 ? '...' : ''}" The summary provides a concise overview of the main points and key information contained in the original text.`,
+    const response = await emitter.emit({
+        agentId: '3e8b514a-bfd6-408c-9f21-6a735a9b8926',
+        event: 'Original Text Input textbox',
+        payload: {
+            text: params.text,
             length: params.length || 'medium',
-            style: params.style || 'paragraph',
-            wordCount: params.text.split(' ').length,
-            characterCount: params.text.length,
-            createdAt: new Date().toISOString()
-        };
-    }
-
-    const response = await api.post('/api/summary/generate', {
-        text: params.text,
-        length: params.length || 'medium',
-        style: params.style || 'paragraph'
+            style: params.style || 'paragraph'
+        }
     });
 
-    return response.data;
+    return {
+        id: Date.now().toString(),
+        originalText: params.text,
+        summary: response.summary,
+        length: params.length || 'medium',
+        style: params.style || 'paragraph',
+        wordCount: params.text.split(' ').length,
+        characterCount: params.text.length,
+        createdAt: new Date().toISOString()
+    };
 };
 
 export const getSummaryHistory = async (
