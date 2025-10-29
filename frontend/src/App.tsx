@@ -3,6 +3,8 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { Toaster } from '@/components/ui/sonner';
 import { SummaryGeneratorPage } from '@/pages/SummaryGeneratorPage';
 import { LoginPage } from '@/pages/LoginPage';
+import { HistoryPage } from '@/pages/HistoryPage';
+import { SettingsPage } from '@/pages/SettingsPage';
 
 const queryClient = new QueryClient({
     defaultOptions: {
@@ -29,11 +31,11 @@ export const App = () => {
                         />
                         <Route
                             path='/history'
-                            element={<ComingSoonPage title='History' />}
+                            element={<HistoryPage />}
                         />
                         <Route
                             path='/settings'
-                            element={<ComingSoonPage title='Settings' />}
+                            element={<SettingsPage />}
                         />
                     </Routes>
                     <Toaster />
@@ -42,13 +44,3 @@ export const App = () => {
         </QueryClientProvider>
     );
 };
-
-// Temporary coming soon page for other routes
-const ComingSoonPage = ({ title }: { title: string }) => (
-    <div className='min-h-screen flex items-center justify-center bg-background'>
-        <div className='text-center space-y-4'>
-            <h1 className='text-4xl font-bold text-muted-foreground'>{title}</h1>
-            <p className='text-lg text-muted-foreground'>Coming Soon</p>
-        </div>
-    </div>
-);

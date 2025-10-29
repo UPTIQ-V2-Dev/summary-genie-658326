@@ -1,9 +1,9 @@
 import Joi from 'joi';
 const generateSummary = {
     body: Joi.object().keys({
-        text: Joi.string().required().min(10).max(50000),
+        text: Joi.string().required().min(1).max(10000),
         length: Joi.string().valid('short', 'medium', 'long').default('medium'),
-        style: Joi.string().valid('paragraph', 'bullets', 'outline').default('paragraph')
+        style: Joi.string().valid('paragraph', 'bullet', 'numbered').default('paragraph')
     })
 };
 const getSummaryHistory = {
@@ -13,23 +13,15 @@ const getSummaryHistory = {
         search: Joi.string().allow('').optional(),
         dateFrom: Joi.date().iso().optional(),
         dateTo: Joi.date().iso().optional(),
-        sortBy: Joi.string().valid('createdAt', 'updatedAt', 'wordCount', 'characterCount').default('createdAt')
+        sortBy: Joi.string()
+            .valid('newest', 'oldest', 'title', 'createdAt', 'updatedAt', 'wordCount', 'characterCount')
+            .default('newest')
     })
 };
 const getSummaryById = {
     params: Joi.object().keys({
         id: Joi.number().integer().required()
     })
-};
-const updateSummary = {
-    params: Joi.object().keys({
-        id: Joi.number().integer().required()
-    }),
-    body: Joi.object()
-        .keys({
-        title: Joi.string().min(1).max(200).optional()
-    })
-        .min(1)
 };
 const deleteSummary = {
     params: Joi.object().keys({
@@ -40,6 +32,5 @@ export default {
     generateSummary,
     getSummaryHistory,
     getSummaryById,
-    updateSummary,
     deleteSummary
 };

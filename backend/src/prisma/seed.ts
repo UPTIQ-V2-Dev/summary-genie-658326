@@ -65,7 +65,7 @@ async function main() {
             summary:
                 '• AI creates intelligent machines for human-like tasks\n• Includes learning, reasoning, and language processing\n• Machine learning enables automatic improvement from experience',
             length: 'short',
-            style: 'bullets',
+            style: 'bullet',
             wordCount: 18,
             characterCount: 143,
             title: 'Artificial Intelligence Overview',

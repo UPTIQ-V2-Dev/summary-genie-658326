@@ -14,7 +14,7 @@ const generateTextSummary = (text, length = 'medium', style = 'paragraph') => {
     const words = text.split(/\s+/);
     const targetWords = Math.max(10, Math.floor(words.length * lengthMultiplier));
     let summary;
-    if (style === 'bullets') {
+    if (style === 'bullet') {
         const bulletPoints = Math.min(5, Math.max(3, Math.floor(targetWords / 10)));
         const pointLength = Math.floor(targetWords / bulletPoints);
         summary = Array.from({ length: bulletPoints }, (_, i) => {
@@ -23,7 +23,7 @@ const generateTextSummary = (text, length = 'medium', style = 'paragraph') => {
             return `• ${words.slice(start, end).join(' ')}`;
         }).join('\n');
     }
-    else if (style === 'outline') {
+    else if (style === 'numbered') {
         const sections = Math.min(4, Math.max(2, Math.floor(targetWords / 15)));
         const sectionLength = Math.floor(targetWords / sections);
         summary = Array.from({ length: sections }, (_, i) => {
@@ -49,6 +49,13 @@ const generateTextSummary = (text, length = 'medium', style = 'paragraph') => {
  * @returns {Promise<Summary>}
  */
 const createSummary = async (summaryData) => {
+    // Validate input
+    if (!summaryData.originalText || summaryData.originalText.trim().length === 0) {
+        throw new ApiError(httpStatus.BAD_REQUEST, 'Text cannot be empty');
+    }
+    if (summaryData.originalText.length > 10000) {
+        throw new ApiError(httpStatus.UNPROCESSABLE_ENTITY, 'Text too long or invalid parameters');
+    }
     const length = summaryData.length || 'medium';
     const style = summaryData.style || 'paragraph';
     const { summary, wordCount, characterCount } = generateTextSummary(summaryData.originalText, length, style);
@@ -72,18 +79,22 @@ const createSummary = async (summaryData) => {
  * Query for summaries
  * @param {Object} filter - Prisma filter
  * @param {Object} options - Query options
+ * @param {number} userId - User ID to filter by
  * @param {string} [options.sortBy] - Sort option in the format: sortField:(desc|asc)
  * @param {number} [options.limit] - Maximum number of results per page (default = 10)
  * @param {number} [options.page] - Current page (default = 1)
  * @returns {Promise<QueryResult>}
  */
-const querySummaries = async (filter, options) => {
+const querySummaries = async (filter, options, userId) => {
     const page = options.page ?? 1;
     const limit = options.limit ?? 10;
     const sortBy = options.sortBy || 'createdAt';
     const sortType = options.sortType ?? 'desc';
     // Build where clause for search and date filters
-    const whereClause = { ...filter };
+    const whereClause = {
+        userId, // Ensure user can only see their own summaries
+        ...filter
+    };
     if (filter.search) {
         whereClause.OR = [
             { title: { contains: filter.search, mode: 'insensitive' } },
@@ -103,12 +114,23 @@ const querySummaries = async (filter, options) => {
         delete whereClause.dateFrom;
         delete whereClause.dateTo;
     }
+    // Handle sortBy parameter based on API specification
+    let orderBy = { createdAt: 'desc' }; // default
+    if (sortBy === 'newest') {
+        orderBy = { createdAt: 'desc' };
+    }
+    else if (sortBy === 'oldest') {
+        orderBy = { createdAt: 'asc' };
+    }
+    else if (sortBy) {
+        orderBy = { [sortBy]: sortType };
+    }
     const [summaries, totalResults] = await Promise.all([
         prisma.summary.findMany({
             where: whereClause,
             skip: (page - 1) * limit,
             take: limit,
-            orderBy: { [sortBy]: sortType }
+            orderBy
         }),
         prisma.summary.count({ where: whereClause })
     ]);
@@ -124,21 +146,23 @@ const querySummaries = async (filter, options) => {
 /**
  * Get summary by id
  * @param {number} id
+ * @param {number} userId - User ID for authorization
  * @returns {Promise<Summary | null>}
  */
-const getSummaryById = async (id) => {
-    return await prisma.summary.findUnique({
-        where: { id }
+const getSummaryById = async (id, userId) => {
+    return await prisma.summary.findFirst({
+        where: { id, userId } // Ensure user can only access their own summaries
     });
 };
 /**
  * Update summary by id
  * @param {number} summaryId
+ * @param {number} userId - User ID for authorization
  * @param {Object} updateBody
  * @returns {Promise<Summary>}
  */
-const updateSummaryById = async (summaryId, updateBody) => {
-    const summary = await getSummaryById(summaryId);
+const updateSummaryById = async (summaryId, userId, updateBody) => {
+    const summary = await getSummaryById(summaryId, userId);
     if (!summary) {
         throw new ApiError(httpStatus.NOT_FOUND, 'Summary not found');
     }
@@ -151,10 +175,11 @@ const updateSummaryById = async (summaryId, updateBody) => {
 /**
  * Delete summary by id
  * @param {number} summaryId
+ * @param {number} userId - User ID for authorization
  * @returns {Promise<Summary>}
  */
-const deleteSummaryById = async (summaryId) => {
-    const summary = await getSummaryById(summaryId);
+const deleteSummaryById = async (summaryId, userId) => {
+    const summary = await getSummaryById(summaryId, userId);
     if (!summary) {
         throw new ApiError(httpStatus.NOT_FOUND, 'Summary not found');
     }

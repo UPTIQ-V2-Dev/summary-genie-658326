@@ -7,19 +7,16 @@ import express from 'express';
 const router = express.Router();
 
 // All summary routes require authentication and user isolation is handled in controllers
-router
-    .route('/generate')
-    .post(auth('manageSummaries'), validate(summaryValidation.generateSummary), summaryController.generateSummary);
+router.route('/generate').post(auth(), validate(summaryValidation.generateSummary), summaryController.generateSummary);
 
 router
     .route('/history')
-    .get(auth('getSummaries'), validate(summaryValidation.getSummaryHistory), summaryController.getSummaryHistory);
+    .get(auth(), validate(summaryValidation.getSummaryHistory), summaryController.getSummaryHistory);
 
 router
     .route('/:id')
-    .get(auth('getSummaries'), validate(summaryValidation.getSummaryById), summaryController.getSummaryById)
-    .patch(auth('manageSummaries'), validate(summaryValidation.updateSummary), summaryController.updateSummary)
-    .delete(auth('manageSummaries'), validate(summaryValidation.deleteSummary), summaryController.deleteSummary);
+    .get(auth(), validate(summaryValidation.getSummaryById), summaryController.getSummaryById)
+    .delete(auth(), validate(summaryValidation.deleteSummary), summaryController.deleteSummary);
 
 export default router;
 
@@ -50,8 +47,8 @@ export default router;
  *             properties:
  *               text:
  *                 type: string
- *                 minLength: 10
- *                 maxLength: 50000
+ *                 minLength: 1
+ *                 maxLength: 10000
  *                 description: Text to summarize
  *               length:
  *                 type: string
@@ -60,11 +57,11 @@ export default router;
  *                 description: Summary length
  *               style:
  *                 type: string
- *                 enum: [paragraph, bullets, outline]
+ *                 enum: [paragraph, bullet, numbered]
  *                 default: paragraph
  *                 description: Summary style format
  *             example:
- *               text: "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua."
+ *               text: "Lorem ipsum dolor sit amet, consectetur adipiscing elit..."
  *               length: "medium"
  *               style: "paragraph"
  *     responses:
@@ -236,68 +233,6 @@ export default router;
  *         $ref: '#/components/responses/Forbidden'
  *       "404":
  *         $ref: '#/components/responses/NotFound'
- *
- *   patch:
- *     summary: Update a summary
- *     description: Update a summary (user can only update their own summaries)
- *     tags: [Summaries]
- *     security:
- *       - bearerAuth: []
- *     parameters:
- *       - in: path
- *         name: id
- *         required: true
- *         schema:
- *           type: integer
- *         description: Summary ID
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             properties:
- *               title:
- *                 type: string
- *                 minLength: 1
- *                 maxLength: 200
- *                 description: Summary title
- *             example:
- *               title: "Updated Summary Title"
- *     responses:
- *       "200":
- *         description: OK
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 id:
- *                   type: string
- *                 originalText:
- *                   type: string
- *                 summary:
- *                   type: string
- *                 title:
- *                   type: string
- *                 wordCount:
- *                   type: integer
- *                 characterCount:
- *                   type: integer
- *                 createdAt:
- *                   type: string
- *                   format: date-time
- *                 updatedAt:
- *                   type: string
- *                   format: date-time
- *       "401":
- *         $ref: '#/components/responses/Unauthorized'
- *       "403":
- *         $ref: '#/components/responses/Forbidden'
- *       "404":
- *         $ref: '#/components/responses/NotFound'
- *       "422":
- *         $ref: '#/components/responses/ValidationError'
  *
  *   delete:
  *     summary: Delete a summary

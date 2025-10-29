@@ -24,7 +24,7 @@ const loginUserWithEmailAndPassword = async (email, password) => {
         'updatedAt'
     ]);
     if (!user || !(await isPasswordMatch(password, user.password))) {
-        throw new ApiError(httpStatus.UNAUTHORIZED, 'Incorrect email or password');
+        throw new ApiError(httpStatus.UNAUTHORIZED, 'Invalid email or password');
     }
     return exclude(user, ['password']);
 };
@@ -42,7 +42,7 @@ const logout = async (refreshToken) => {
         }
     });
     if (!refreshTokenData) {
-        throw new ApiError(httpStatus.NOT_FOUND, 'Not found');
+        throw new ApiError(httpStatus.NOT_FOUND, 'Refresh token not found');
     }
     await prisma.token.delete({ where: { id: refreshTokenData.id } });
 };
@@ -59,7 +59,7 @@ const refreshAuth = async (refreshToken) => {
         return tokenService.generateAuthTokens({ id: userId });
     }
     catch (error) {
-        throw new ApiError(httpStatus.UNAUTHORIZED, 'Please authenticate');
+        throw new ApiError(httpStatus.UNAUTHORIZED, 'Invalid refresh token');
     }
 };
 /**
@@ -80,7 +80,7 @@ const resetPassword = async (resetPasswordToken, newPassword) => {
         await prisma.token.deleteMany({ where: { userId: user.id, type: TokenType.RESET_PASSWORD } });
     }
     catch (error) {
-        throw new ApiError(httpStatus.UNAUTHORIZED, 'Password reset failed');
+        throw new ApiError(httpStatus.UNAUTHORIZED, 'Invalid or expired reset token');
     }
 };
 /**
@@ -97,7 +97,7 @@ const verifyEmail = async (verifyEmailToken) => {
         await userService.updateUserById(verifyEmailTokenData.userId, { isEmailVerified: true });
     }
     catch (error) {
-        throw new ApiError(httpStatus.UNAUTHORIZED, 'Email verification failed');
+        throw new ApiError(httpStatus.UNAUTHORIZED, 'Invalid or expired verification token');
     }
 };
 export default {

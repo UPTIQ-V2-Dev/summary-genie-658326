@@ -11,9 +11,9 @@ router
     .get(auth('getUsers'), validate(userValidation.getUsers), userController.getUsers);
 router
     .route('/:userId')
-    .get(auth('getUsers'), validate(userValidation.getUser), userController.getUser)
-    .patch(auth('manageUsers'), validate(userValidation.updateUser), userController.updateUser)
-    .delete(auth('manageUsers'), validate(userValidation.deleteUser), userController.deleteUser);
+    .get(auth(), validate(userValidation.getUser), userController.getUser)
+    .patch(auth(), validate(userValidation.updateUser), userController.updateUser)
+    .delete(auth(), validate(userValidation.deleteUser), userController.deleteUser);
 export default router;
 /**
  * @swagger
@@ -142,7 +142,7 @@ export default router;
  */
 /**
  * @swagger
- * /users/{id}:
+ * /users/{userId}:
  *   get:
  *     summary: Get a user
  *     description: Logged in users can fetch only their own user information. Only admins can fetch other users.
@@ -151,7 +151,7 @@ export default router;
  *       - bearerAuth: []
  *     parameters:
  *       - in: path
- *         name: id
+ *         name: userId
  *         required: true
  *         schema:
  *           type: string
@@ -178,7 +178,7 @@ export default router;
  *       - bearerAuth: []
  *     parameters:
  *       - in: path
- *         name: id
+ *         name: userId
  *         required: true
  *         schema:
  *           type: string
@@ -229,14 +229,19 @@ export default router;
  *       - bearerAuth: []
  *     parameters:
  *       - in: path
- *         name: id
+ *         name: userId
  *         required: true
  *         schema:
  *           type: string
  *         description: User id
  *     responses:
  *       "200":
- *         description: No content
+ *         description: Empty object
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               example: {}
  *       "401":
  *         $ref: '#/components/responses/Unauthorized'
  *       "403":

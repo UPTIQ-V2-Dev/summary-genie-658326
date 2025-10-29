@@ -22,7 +22,7 @@ const createUser = async (email, password, name, role = Role.USER) => {
     });
 };
 /**
- * Query for users
+ * Query for users with pagination
  * @param {Object} filter - Prisma filter
  * @param {Object} options - Query options
  * @param {string} [options.sortBy] - Sort option in the format: sortField:(desc|asc)
@@ -30,19 +30,28 @@ const createUser = async (email, password, name, role = Role.USER) => {
  * @param {number} [options.page] - Current page (default = 1)
  * @returns {Promise<QueryResult>}
  */
-const queryUsers = async (filter, options, keys = ['id', 'email', 'name', 'password', 'role', 'isEmailVerified', 'createdAt', 'updatedAt']) => {
+const queryUsers = async (filter, options, keys = ['id', 'email', 'name', 'role', 'isEmailVerified', 'createdAt', 'updatedAt']) => {
     const page = options.page ?? 1;
     const limit = options.limit ?? 10;
     const sortBy = options.sortBy;
     const sortType = options.sortType ?? 'desc';
+    // Get total count for pagination
+    const totalResults = await prisma.user.count({ where: filter });
+    const totalPages = Math.ceil(totalResults / limit);
     const users = await prisma.user.findMany({
         where: filter,
         select: keys.reduce((obj, k) => ({ ...obj, [k]: true }), {}),
-        skip: page * limit,
+        skip: (page - 1) * limit,
         take: limit,
         orderBy: sortBy ? { [sortBy]: sortType } : undefined
     });
-    return users;
+    return {
+        results: users,
+        page,
+        limit,
+        totalPages,
+        totalResults
+    };
 };
 /**
  * Get user by id
@@ -79,8 +88,15 @@ const updateUserById = async (userId, updateBody, keys = ['id', 'email', 'name',
     if (!user) {
         throw new ApiError(httpStatus.NOT_FOUND, 'User not found');
     }
-    if (updateBody.email && (await getUserByEmail(updateBody.email))) {
-        throw new ApiError(httpStatus.BAD_REQUEST, 'Email already taken');
+    if (updateBody.email) {
+        const existingUser = await getUserByEmail(updateBody.email, ['id']);
+        if (existingUser && existingUser.id !== userId) {
+            throw new ApiError(httpStatus.BAD_REQUEST, 'Email already taken');
+        }
+    }
+    // Encrypt password if provided
+    if (updateBody.password) {
+        updateBody.password = await encryptPassword(updateBody.password);
     }
     const updatedUser = await prisma.user.update({
         where: { id: user.id },

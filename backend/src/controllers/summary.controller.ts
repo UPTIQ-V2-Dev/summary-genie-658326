@@ -31,19 +31,7 @@ const getSummaryHistory = catchAsyncWithAuth(async (req, res) => {
     const filter = pick(req.validatedQuery, ['search', 'dateFrom', 'dateTo']);
     const options = pick(req.validatedQuery, ['sortBy', 'limit', 'page']);
 
-    // Filter by authenticated user
-    filter.userId = req.user.id;
-
-    // Handle sortBy parameter
-    if (options.sortBy === 'newest') {
-        options.sortBy = 'createdAt';
-        options.sortType = 'desc';
-    } else if (options.sortBy === 'oldest') {
-        options.sortBy = 'createdAt';
-        options.sortType = 'asc';
-    }
-
-    const result = await summaryService.querySummaries(filter, options);
+    const result = await summaryService.querySummaries(filter, options, req.user.id);
 
     // Transform the response to match API specification
     const transformedResults = result.results.map(summary => ({
@@ -67,15 +55,10 @@ const getSummaryHistory = catchAsyncWithAuth(async (req, res) => {
 
 const getSummaryById = catchAsyncWithAuth(async (req, res) => {
     const summaryId = parseInt(req.params.id);
-    const summary = await summaryService.getSummaryById(summaryId);
+    const summary = await summaryService.getSummaryById(summaryId, req.user.id);
 
     if (!summary) {
         throw new ApiError(httpStatus.NOT_FOUND, 'Summary not found');
-    }
-
-    // Check if summary belongs to authenticated user
-    if (summary.userId !== req.user.id) {
-        throw new ApiError(httpStatus.FORBIDDEN, 'Access denied');
     }
 
     res.send({
@@ -89,47 +72,9 @@ const getSummaryById = catchAsyncWithAuth(async (req, res) => {
     });
 });
 
-const updateSummary = catchAsyncWithAuth(async (req, res) => {
-    const summaryId = parseInt(req.params.id);
-    const summary = await summaryService.getSummaryById(summaryId);
-
-    if (!summary) {
-        throw new ApiError(httpStatus.NOT_FOUND, 'Summary not found');
-    }
-
-    // Check if summary belongs to authenticated user
-    if (summary.userId !== req.user.id) {
-        throw new ApiError(httpStatus.FORBIDDEN, 'Access denied');
-    }
-
-    const updatedSummary = await summaryService.updateSummaryById(summaryId, req.body);
-
-    res.send({
-        id: updatedSummary.id.toString(),
-        originalText: updatedSummary.originalText,
-        summary: updatedSummary.summary,
-        title: updatedSummary.title,
-        wordCount: updatedSummary.wordCount,
-        characterCount: updatedSummary.characterCount,
-        createdAt: updatedSummary.createdAt.toISOString(),
-        updatedAt: updatedSummary.updatedAt.toISOString()
-    });
-});
-
 const deleteSummary = catchAsyncWithAuth(async (req, res) => {
     const summaryId = parseInt(req.params.id);
-    const summary = await summaryService.getSummaryById(summaryId);
-
-    if (!summary) {
-        throw new ApiError(httpStatus.NOT_FOUND, 'Summary not found');
-    }
-
-    // Check if summary belongs to authenticated user
-    if (summary.userId !== req.user.id) {
-        throw new ApiError(httpStatus.FORBIDDEN, 'Access denied');
-    }
-
-    await summaryService.deleteSummaryById(summaryId);
+    await summaryService.deleteSummaryById(summaryId, req.user.id);
     res.status(httpStatus.NO_CONTENT).send();
 });
 
@@ -137,6 +82,5 @@ export default {
     generateSummary,
     getSummaryHistory,
     getSummaryById,
-    updateSummary,
     deleteSummary
 };

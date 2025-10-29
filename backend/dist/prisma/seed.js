@@ -53,7 +53,7 @@ async function main() {
             originalText: 'Artificial Intelligence (AI) is a rapidly evolving field that aims to create intelligent machines capable of performing tasks that typically require human intelligence. These tasks include learning, reasoning, problem-solving, perception, and natural language processing. Machine learning, a subset of AI, enables systems to automatically learn and improve from experience without being explicitly programmed.',
             summary: '• AI creates intelligent machines for human-like tasks\n• Includes learning, reasoning, and language processing\n• Machine learning enables automatic improvement from experience',
             length: 'short',
-            style: 'bullets',
+            style: 'bullet',
             wordCount: 18,
             characterCount: 143,
             title: 'Artificial Intelligence Overview',

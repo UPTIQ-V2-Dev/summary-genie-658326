@@ -4,60 +4,75 @@ import pick from '../utils/pick.ts';
 import { z } from 'zod';
 
 const summarySchema = z.object({
-    id: z.number(),
+    id: z.string(),
     originalText: z.string(),
     summary: z.string(),
     length: z.string(),
     style: z.string(),
     wordCount: z.number(),
     characterCount: z.number(),
-    title: z.string().nullable(),
-    createdAt: z.string(),
-    updatedAt: z.string(),
-    userId: z.number()
+    createdAt: z.string()
 });
 
-const createSummaryTool: MCPTool = {
-    id: 'summary_create',
-    name: 'Create Summary',
-    description: 'Generate a new AI text summary with specified parameters',
+const summaryHistoryResultSchema = z.object({
+    id: z.string(),
+    originalText: z.string(),
+    summary: z.string(),
+    title: z.string().nullable(),
+    wordCount: z.number(),
+    characterCount: z.number(),
+    createdAt: z.string()
+});
+
+const generateSummaryTool: MCPTool = {
+    id: 'summary_generate',
+    name: 'Generate Summary',
+    description: 'Generate a text summary with specified parameters',
     inputSchema: z.object({
-        originalText: z.string().min(10).max(50000),
-        length: z.enum(['short', 'medium', 'long']).default('medium'),
-        style: z.enum(['paragraph', 'bullets', 'outline']).default('paragraph'),
+        text: z.string().min(1).max(10000),
+        length: z.enum(['short', 'medium', 'long']).optional().default('medium'),
+        style: z.enum(['paragraph', 'bullet', 'numbered']).optional().default('paragraph'),
         userId: z.number().int()
     }),
     outputSchema: summarySchema,
-    fn: async (inputs: { originalText: string; length?: string; style?: string; userId: number }) => {
+    fn: async (inputs: { text: string; length?: string; style?: string; userId: number }) => {
         const summary = await summaryService.createSummary({
-            originalText: inputs.originalText,
+            originalText: inputs.text,
             length: inputs.length,
             style: inputs.style,
             userId: inputs.userId
         });
         return {
-            ...summary,
-            createdAt: summary.createdAt.toISOString(),
-            updatedAt: summary.updatedAt.toISOString()
+            id: summary.id.toString(),
+            originalText: summary.originalText,
+            summary: summary.summary,
+            length: summary.length,
+            style: summary.style,
+            wordCount: summary.wordCount,
+            characterCount: summary.characterCount,
+            createdAt: summary.createdAt.toISOString()
         };
     }
 };
 
-const getSummariesTool: MCPTool = {
-    id: 'summary_get_all',
-    name: 'Get All Summaries',
-    description: 'Get user summaries with optional filters and pagination',
+const getSummaryHistoryTool: MCPTool = {
+    id: 'summary_get_history',
+    name: 'Get Summary History',
+    description: "Get user's summary history with filtering and pagination",
     inputSchema: z.object({
         userId: z.number().int(),
+        page: z.number().int().min(1).optional().default(1),
+        limit: z.number().int().min(1).max(100).optional().default(10),
         search: z.string().optional(),
-        dateFrom: z.string().optional(),
-        dateTo: z.string().optional(),
-        sortBy: z.string().optional(),
-        limit: z.number().int().optional(),
-        page: z.number().int().optional()
+        dateFrom: z.string().datetime().optional(),
+        dateTo: z.string().datetime().optional(),
+        sortBy: z
+            .enum(['newest', 'oldest', 'title', 'createdAt', 'updatedAt', 'wordCount', 'characterCount'])
+            .optional()
+            .default('newest')
     }),
     outputSchema: z.object({
-        results: z.array(summarySchema),
+        results: z.array(summaryHistoryResultSchema),
         page: z.number(),
         limit: z.number(),
         totalPages: z.number(),
@@ -65,87 +80,61 @@ const getSummariesTool: MCPTool = {
     }),
     fn: async (inputs: {
         userId: number;
+        page?: number;
+        limit?: number;
         search?: string;
         dateFrom?: string;
         dateTo?: string;
         sortBy?: string;
-        limit?: number;
-        page?: number;
     }) => {
         const filter = pick(inputs, ['search', 'dateFrom', 'dateTo']);
-        filter.userId = inputs.userId;
+        const options = pick(inputs, ['page', 'limit', 'sortBy']);
 
-        const options = pick(inputs, ['sortBy', 'limit', 'page']);
+        const result = await summaryService.querySummaries(filter, options, inputs.userId);
 
-        const result = await summaryService.querySummaries(filter, options);
+        // Transform the response to match API specification
+        const transformedResults = result.results.map(summary => ({
+            id: summary.id.toString(),
+            originalText: summary.originalText,
+            summary: summary.summary,
+            title: summary.title,
+            wordCount: summary.wordCount,
+            characterCount: summary.characterCount,
+            createdAt: summary.createdAt.toISOString()
+        }));
 
         return {
-            ...result,
-            results: result.results.map(summary => ({
-                ...summary,
-                createdAt: summary.createdAt.toISOString(),
-                updatedAt: summary.updatedAt.toISOString()
-            }))
+            results: transformedResults,
+            page: result.page,
+            limit: result.limit,
+            totalPages: result.totalPages,
+            totalResults: result.totalResults
         };
     }
 };
 
-const getSummaryTool: MCPTool = {
+const getSummaryByIdTool: MCPTool = {
     id: 'summary_get_by_id',
     name: 'Get Summary By ID',
-    description: 'Get a single summary by its ID',
+    description: 'Get a specific summary by its ID (user can only access their own summaries)',
     inputSchema: z.object({
-        summaryId: z.number().int(),
+        id: z.number().int(),
         userId: z.number().int()
     }),
-    outputSchema: summarySchema,
-    fn: async (inputs: { summaryId: number; userId: number }) => {
-        const summary = await summaryService.getSummaryById(inputs.summaryId);
+    outputSchema: summaryHistoryResultSchema,
+    fn: async (inputs: { id: number; userId: number }) => {
+        const summary = await summaryService.getSummaryById(inputs.id, inputs.userId);
         if (!summary) {
             throw new Error('Summary not found');
         }
-
-        // Check if summary belongs to the user
-        if (summary.userId !== inputs.userId) {
-            throw new Error('Access denied - summary does not belong to user');
-        }
-
         return {
-            ...summary,
-            createdAt: summary.createdAt.toISOString(),
-            updatedAt: summary.updatedAt.toISOString()
-        };
-    }
-};
-
-const updateSummaryTool: MCPTool = {
-    id: 'summary_update',
-    name: 'Update Summary',
-    description: 'Update summary information by ID',
-    inputSchema: z.object({
-        summaryId: z.number().int(),
-        userId: z.number().int(),
-        title: z.string().min(1).max(200).optional()
-    }),
-    outputSchema: summarySchema,
-    fn: async (inputs: { summaryId: number; userId: number; title?: string }) => {
-        const existingSummary = await summaryService.getSummaryById(inputs.summaryId);
-        if (!existingSummary) {
-            throw new Error('Summary not found');
-        }
-
-        // Check if summary belongs to the user
-        if (existingSummary.userId !== inputs.userId) {
-            throw new Error('Access denied - summary does not belong to user');
-        }
-
-        const updateBody = pick(inputs, ['title']);
-        const summary = await summaryService.updateSummaryById(inputs.summaryId, updateBody);
-
-        return {
-            ...summary,
-            createdAt: summary.createdAt.toISOString(),
-            updatedAt: summary.updatedAt.toISOString()
+            id: summary.id.toString(),
+            originalText: summary.originalText,
+            summary: summary.summary,
+            title: summary.title,
+            wordCount: summary.wordCount,
+            characterCount: summary.characterCount,
+            createdAt: summary.createdAt.toISOString()
         };
     }
 };
@@ -153,59 +142,23 @@ const updateSummaryTool: MCPTool = {
 const deleteSummaryTool: MCPTool = {
     id: 'summary_delete',
     name: 'Delete Summary',
-    description: 'Delete a summary by its ID',
+    description: 'Delete a specific summary by its ID (user can only delete their own summaries)',
     inputSchema: z.object({
-        summaryId: z.number().int(),
+        id: z.number().int(),
         userId: z.number().int()
     }),
     outputSchema: z.object({
         success: z.boolean()
     }),
-    fn: async (inputs: { summaryId: number; userId: number }) => {
-        const existingSummary = await summaryService.getSummaryById(inputs.summaryId);
-        if (!existingSummary) {
-            throw new Error('Summary not found');
-        }
-
-        // Check if summary belongs to the user
-        if (existingSummary.userId !== inputs.userId) {
-            throw new Error('Access denied - summary does not belong to user');
-        }
-
-        await summaryService.deleteSummaryById(inputs.summaryId);
+    fn: async (inputs: { id: number; userId: number }) => {
+        await summaryService.deleteSummaryById(inputs.id, inputs.userId);
         return { success: true };
     }
 };
 
-const generateTextSummaryTool: MCPTool = {
-    id: 'summary_generate_text',
-    name: 'Generate Text Summary',
-    description: 'Generate AI text summary without saving to database',
-    inputSchema: z.object({
-        text: z.string().min(10).max(50000),
-        length: z.enum(['short', 'medium', 'long']).default('medium'),
-        style: z.enum(['paragraph', 'bullets', 'outline']).default('paragraph')
-    }),
-    outputSchema: z.object({
-        summary: z.string(),
-        wordCount: z.number(),
-        characterCount: z.number()
-    }),
-    fn: (inputs: { text: string; length?: string; style?: string }) => {
-        const result = summaryService.generateTextSummary(
-            inputs.text,
-            inputs.length || 'medium',
-            inputs.style || 'paragraph'
-        );
-        return result;
-    }
-};
-
 export const summaryTools: MCPTool[] = [
-    createSummaryTool,
-    getSummariesTool,
-    getSummaryTool,
-    updateSummaryTool,
-    deleteSummaryTool,
-    generateTextSummaryTool
+    generateSummaryTool,
+    getSummaryHistoryTool,
+    getSummaryByIdTool,
+    deleteSummaryTool
 ];

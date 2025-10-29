@@ -1,34 +1,77 @@
 import { userService } from "../services/index.js";
 import ApiError from "../utils/ApiError.js";
-import catchAsync from "../utils/catchAsync.js";
 import catchAsyncWithAuth from "../utils/catchAsyncWithAuth.js";
+import exclude from "../utils/exclude.js";
 import pick from "../utils/pick.js";
 import httpStatus from 'http-status';
-const createUser = catchAsync(async (req, res) => {
+const createUser = catchAsyncWithAuth(async (req, res) => {
     const { email, password, name, role } = req.body;
     const user = await userService.createUser(email, password, name, role);
-    res.status(httpStatus.CREATED).send(user);
+    const userWithoutPassword = exclude(user, ['password']);
+    res.status(httpStatus.CREATED).send(userWithoutPassword);
 });
 const getUsers = catchAsyncWithAuth(async (req, res) => {
     const filter = pick(req.validatedQuery, ['name', 'role']);
     const options = pick(req.validatedQuery, ['sortBy', 'limit', 'page']);
-    const result = await userService.queryUsers(filter, options);
+    const result = await userService.queryUsers(filter, options, [
+        'id',
+        'email',
+        'name',
+        'role',
+        'isEmailVerified',
+        'createdAt',
+        'updatedAt'
+    ]);
     res.send(result);
 });
-const getUser = catchAsync(async (req, res) => {
-    const user = await userService.getUserById(req.params.userId);
+const getUser = catchAsyncWithAuth(async (req, res) => {
+    const userId = parseInt(req.params.userId, 10);
+    const requestingUser = req.user;
+    // Users can get their own info, admins can get any user
+    if (requestingUser.role !== 'ADMIN' && requestingUser.id !== userId) {
+        throw new ApiError(httpStatus.FORBIDDEN, 'Forbidden');
+    }
+    const user = await userService.getUserById(userId, [
+        'id',
+        'email',
+        'name',
+        'role',
+        'isEmailVerified',
+        'createdAt',
+        'updatedAt'
+    ]);
     if (!user) {
         throw new ApiError(httpStatus.NOT_FOUND, 'User not found');
     }
     res.send(user);
 });
-const updateUser = catchAsync(async (req, res) => {
-    const user = await userService.updateUserById(req.params.userId, req.body);
+const updateUser = catchAsyncWithAuth(async (req, res) => {
+    const userId = parseInt(req.params.userId, 10);
+    const requestingUser = req.user;
+    // Users can update themselves, admins can update any user
+    if (requestingUser.role !== 'ADMIN' && requestingUser.id !== userId) {
+        throw new ApiError(httpStatus.FORBIDDEN, 'Forbidden');
+    }
+    const user = await userService.updateUserById(userId, req.body, [
+        'id',
+        'email',
+        'name',
+        'role',
+        'isEmailVerified',
+        'createdAt',
+        'updatedAt'
+    ]);
     res.send(user);
 });
-const deleteUser = catchAsync(async (req, res) => {
-    await userService.deleteUserById(req.params.userId);
-    res.status(httpStatus.NO_CONTENT).send();
+const deleteUser = catchAsyncWithAuth(async (req, res) => {
+    const userId = parseInt(req.params.userId, 10);
+    const requestingUser = req.user;
+    // Users can delete themselves, admins can delete any user
+    if (requestingUser.role !== 'ADMIN' && requestingUser.id !== userId) {
+        throw new ApiError(httpStatus.FORBIDDEN, 'Forbidden');
+    }
+    await userService.deleteUserById(userId);
+    res.status(httpStatus.OK).send({});
 });
 export default {
     createUser,
