@@ -1,5 +1,5 @@
 import prisma from "../client.js";
-import { TokenType } from '../generated/prisma/index.js';
+import { TokenType } from "../constants/token.constants.js";
 import config from "./config.js";
 import { ExtractJwt, Strategy as JwtStrategy } from 'passport-jwt';
 const jwtOptions = {

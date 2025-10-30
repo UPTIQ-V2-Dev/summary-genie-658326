@@ -1,5 +1,5 @@
 import prisma from "../client.js";
-import { TokenType } from '../generated/prisma/index.js';
+import { TokenType } from "../constants/token.constants.js";
 import ApiError from "../utils/ApiError.js";
 import { encryptPassword, isPasswordMatch } from "../utils/encryption.js";
 import exclude from "../utils/exclude.js";

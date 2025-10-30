@@ -1,6 +1,7 @@
 import prisma from '../client.ts';
 import config from '../config/config.ts';
-import { Token, TokenType } from '../generated/prisma/index.js';
+import { TokenType } from '../constants/token.constants.ts';
+import { Token } from '../generated/prisma/index.js';
 import { AuthTokensResponse } from '../types/response.ts';
 import ApiError from '../utils/ApiError.ts';
 import userService from './user.service.ts';

@@ -1,5 +1,5 @@
 import prisma from '../client.ts';
-import { Prisma, Role, User } from '../generated/prisma/index.js';
+import { Prisma, User } from '../generated/prisma/index.js';
 import ApiError from '../utils/ApiError.ts';
 import { encryptPassword } from '../utils/encryption.ts';
 import httpStatus from 'http-status';
@@ -9,7 +9,7 @@ import httpStatus from 'http-status';
  * @param {Object} userBody
  * @returns {Promise<User>}
  */
-const createUser = async (email: string, password: string, name?: string, role: Role = Role.USER): Promise<User> => {
+const createUser = async (email: string, password: string, name?: string, role: string = 'USER'): Promise<User> => {
     if (await getUserByEmail(email)) {
         throw new ApiError(httpStatus.BAD_REQUEST, 'Email already taken');
     }

@@ -1,5 +1,5 @@
 import prisma from '../client.ts';
-import { TokenType } from '../generated/prisma/index.js';
+import { TokenType } from '../constants/token.constants.ts';
 import config from './config.ts';
 import { ExtractJwt, Strategy as JwtStrategy, VerifyCallback } from 'passport-jwt';
 

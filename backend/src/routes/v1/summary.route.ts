@@ -6,17 +6,19 @@ import express from 'express';
 
 const router = express.Router();
 
-// All summary routes require authentication and user isolation is handled in controllers
-router.route('/generate').post(auth(), validate(summaryValidation.generateSummary), summaryController.generateSummary);
+// All summary routes require authentication with proper permissions
+router
+    .route('/generate')
+    .post(auth('manageSummaries'), validate(summaryValidation.generateSummary), summaryController.generateSummary);
 
 router
     .route('/history')
-    .get(auth(), validate(summaryValidation.getSummaryHistory), summaryController.getSummaryHistory);
+    .get(auth('getSummaries'), validate(summaryValidation.getSummaryHistory), summaryController.getSummaryHistory);
 
 router
     .route('/:id')
-    .get(auth(), validate(summaryValidation.getSummaryById), summaryController.getSummaryById)
-    .delete(auth(), validate(summaryValidation.deleteSummary), summaryController.deleteSummary);
+    .get(auth('getSummaries'), validate(summaryValidation.getSummaryById), summaryController.getSummaryById)
+    .delete(auth('manageSummaries'), validate(summaryValidation.deleteSummary), summaryController.deleteSummary);
 
 export default router;
 

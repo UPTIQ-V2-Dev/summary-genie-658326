@@ -1,6 +1,6 @@
 import prisma from "../client.js";
 import config from "../config/config.js";
-import { TokenType } from '../generated/prisma/index.js';
+import { TokenType } from "../constants/token.constants.js";
 import ApiError from "../utils/ApiError.js";
 import userService from "./user.service.js";
 import httpStatus from 'http-status';

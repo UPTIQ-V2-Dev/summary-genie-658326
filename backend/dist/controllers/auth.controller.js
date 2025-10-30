@@ -1,5 +1,6 @@
 import { authService, emailService, tokenService, userService } from "../services/index.js";
 import catchAsync from "../utils/catchAsync.js";
+import catchAsyncWithAuth from "../utils/catchAsyncWithAuth.js";
 import exclude from "../utils/exclude.js";
 import httpStatus from 'http-status';
 const register = catchAsync(async (req, res) => {
@@ -32,7 +33,7 @@ const resetPassword = catchAsync(async (req, res) => {
     await authService.resetPassword(req.query.token, req.body.password);
     res.status(httpStatus.NO_CONTENT).send();
 });
-const sendVerificationEmail = catchAsync(async (req, res) => {
+const sendVerificationEmail = catchAsyncWithAuth(async (req, res) => {
     const user = req.user;
     const verifyEmailToken = await tokenService.generateVerifyEmailToken(user);
     await emailService.sendVerificationEmail(user.email, verifyEmailToken);

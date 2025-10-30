@@ -1,5 +1,6 @@
 import prisma from '../client.ts';
-import { TokenType, User } from '../generated/prisma/index.js';
+import { TokenType } from '../constants/token.constants.ts';
+import { User } from '../generated/prisma/index.js';
 import { AuthTokensResponse } from '../types/response.ts';
 import ApiError from '../utils/ApiError.ts';
 import { encryptPassword, isPasswordMatch } from '../utils/encryption.ts';

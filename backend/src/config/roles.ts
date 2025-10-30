@@ -1,4 +1,4 @@
-import { Role } from '../generated/prisma/index.js';
+import { Role } from '../constants/role.constants.ts';
 
 const allRoles = {
     [Role.USER]: ['getSummaries', 'manageSummaries'],

@@ -19,7 +19,7 @@ model User {
   email           String   @unique
   name            String?
   password        String
-  role            Role     @default(USER)
+  role            String   @default("USER")
   isEmailVerified Boolean  @default(false)
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
@@ -30,7 +30,7 @@ model User {
 model Token {
   id          Int       @id @default(autoincrement())
   token       String
-  type        TokenType
+  type        String
   expires     DateTime
   blacklisted Boolean
   createdAt   DateTime  @default(now())
@@ -53,14 +53,3 @@ model Summary {
   userId          Int
 }
 
-enum Role {
-  USER
-  ADMIN
-}
-
-enum TokenType {
-  ACCESS
-  REFRESH
-  RESET_PASSWORD
-  VERIFY_EMAIL
-}

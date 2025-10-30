@@ -1,6 +1,7 @@
 import { User } from '../generated/prisma/index.js';
 import { authService, emailService, tokenService, userService } from '../services/index.ts';
 import catchAsync from '../utils/catchAsync.ts';
+import catchAsyncWithAuth from '../utils/catchAsyncWithAuth.ts';
 import exclude from '../utils/exclude.ts';
 import httpStatus from 'http-status';
 
@@ -40,7 +41,7 @@ const resetPassword = catchAsync(async (req, res) => {
     res.status(httpStatus.NO_CONTENT).send();
 });
 
-const sendVerificationEmail = catchAsync(async (req, res) => {
+const sendVerificationEmail = catchAsyncWithAuth(async (req, res) => {
     const user = req.user as User;
     const verifyEmailToken = await tokenService.generateVerifyEmailToken(user);
     await emailService.sendVerificationEmail(user.email, verifyEmailToken);
